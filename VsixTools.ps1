@@ -99,10 +99,48 @@ function Vsix-Fix-Invalid-Multiple-Files {
        [Parameter(Mandatory=$true)]
        [string]$VsixPath
     )
-    
+
+    # The gist is this. Find every zip file in Project Templates, e.g:
+    # ProjectTemplates\CSharp\1033\PlumsProject.zip
+    # ProjectTemplates\CSharp\1033\ApplesProject.zip
+    # Then put *each one* into a uniquely named folder by replacing
+    # 'project templates' in the path with a new unique id
+    # A\CSharp\1033\PlumsProject.zip
+    # B\CSharp\1033\ApplesProject.zip
+    # don't use numbers, as the Visual Studio Gallery site fails
+    # if you use 1, 11, 111 etc.
+
     # First, create the working directory.
     $workingFolder = ExtractVsixToWorkingFolder $VsixPath
-    
+
+    # Get the zip paths
+    $letter = 65 # i.e. 'A'
+    Get-ChildItem -Path (Join-Path $workingFolder '.\ProjectTemplates') -Filter *.zip -Recurse | ForEach-Object {
+        $from = $_.FullName
+        $newPath = $from.Replace('\ProjectTemplates\', '\' + [char]$letter + '\')
+        Write-Host "From: $from"
+        Write-Host "To: $newPath"
+        $letter++
+
+        # Copy the file from the old location to the new one, creating a directory chain as necessary.
+        New-Item -ItemType File -Path $newPath -Force
+        Copy-Item $from $newPath -Force
+    }
+
+    # Delete the project templates folder.
+    Remove-Item (Join-Path $workingFolder '.\ProjectTemplates') -Force -Recurse
+
+    # Manifest v1:
+    # Remove all Vsix/Content/ProjectTemplate nodes and replace with A/B/C etc, e.g.:
+    # <Content>
+    #   <ProjectTemplate>ProjectTemplates</ProjectTemplate>
+    # </Content>
+    # to 
+    # <Content>
+    #   <ProjectTemplate>A</ProjectTemplate>
+    #   <ProjectTemplate>B</ProjectTemplate>
+    #   <ProjectTemplate>C</ProjectTemplate>
+    # </Content>
     # Finally, save the updated working folder as the vsix.
     ZipWorkingFolderToVsix $workingFolder $vsixPath
 }
@@ -131,6 +169,8 @@ function Vsix-Get-Manifest-Version {
 
 $vsixPath2010 = ".\Test Files\VS2010\SharpGL.vsix"
 $vsixPath2012 = ".\Test Files\VS2012\SharpGL.vsix"
+
+Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2010
 
 Vsix-Get-Manifest-Version -VsixPath $vsixPath2010
 Vsix-Get-Manifest-Version -VsixPath $vsixPath2012
