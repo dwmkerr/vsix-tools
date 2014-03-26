@@ -43,6 +43,24 @@ function ZipWorkingFolderToVsix($workingFolder, $vsixPath) {
     Remove-Item $workingFolder -Force -Recurse
 }
 
+# Gets the vsix manifest version. Could be:
+# 1: Visual Studio 2010
+# 2: Visual Studio 2012 onwards
+function GetManifestVersion($manifestXml) {
+
+    # Version 1 if we have a Vsix node with Version attribute = 1.
+    if($manifestXml.DocumentElement.Name -eq "Vsix" -and $manifestXml.Vsix.Version -eq "1.0.0") {
+        return 1;
+    }
+
+    # Version 2 if we have a Package manifest node with Version attribute = 2.
+    if($manifestXml.DocumentElement.Name -eq "PackageManifest" -and $manifestXml.PackageManifest.Version -eq "2.0.0") {
+        return 2;
+    }
+    
+    throw "Unable to determine the version of the Vsix manifest."
+}
+
 # Sets the version of the vsix.
 # Version should be a string in the format "a.b" "a.b.c" or "a.b.c.d"
 function Vsix-Set-Version {
@@ -58,10 +76,18 @@ function Vsix-Set-Version {
 
     # Now load the manifest.
     $manifestPath = Join-Path $workingFolder "extension.vsixmanifest"
-
     $manifestXml = New-Object XML
     $manifestXml.Load($manifestPath)
-    $manifestXml.PackageManifest.Metadata.Identity.Version = $Version
+
+    # Set the package version. The xml structure depends on the manifest version.
+    $manifestVersion = GetManifestVersion($manifestXml)
+    if($manifestVersion -eq 1) {
+        $manifestXml.Vsix.Identifier.Version = $Version
+    } else {
+        $manifestXml.PackageManifest.Metadata.Identity.Version = $Version
+    }
+
+    # Save the manifest.
     $manifestXml.save($manifestPath)
     
     # Finally, save the updated working folder as the vsix.
@@ -81,5 +107,32 @@ function Vsix-Fix-Invalid-Multiple-Files {
     ZipWorkingFolderToVsix $workingFolder $vsixPath
 }
 
-$vsixPath = "C:\Repositories\GitHub\vsix-tools\SharpGL.vsix"
-Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath
+function Vsix-Get-Manifest-Version {
+    param(
+       [Parameter(Mandatory=$true)]
+       [string]$VsixPath
+    )
+    
+    # First, create the working directory.
+    $workingFolder = ExtractVsixToWorkingFolder $VsixPath
+    
+    # Now load the manifest.
+    $manifestPath = Join-Path $workingFolder "extension.vsixmanifest"
+
+    # Get the manifest version.
+    $manifestXml = New-Object XML
+    $manifestXml.Load($manifestPath)
+    $manifestVersion = GetManifestVersion($manifestXml)
+
+    # Finally, clean up the working folder.
+    Remove-Item $workingFolder -Force -Recurse
+    return $manifestVersion
+}
+
+$vsixPath2010 = ".\Test Files\VS2010\SharpGL.vsix"
+$vsixPath2012 = ".\Test Files\VS2012\SharpGL.vsix"
+
+Vsix-Get-Manifest-Version -VsixPath $vsixPath2010
+Vsix-Get-Manifest-Version -VsixPath $vsixPath2012
+Vsix-Set-Version -VsixPath $vsixPath2010 -Version "69.2"
+Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2012
