@@ -48,6 +48,8 @@ them. If you need more functionality, raise an issue and I'll see what I can do.
 
 The tools have no other dependecies and are written in Powershell 2.
 
+The script works for packages of version 1 or 2 - i.e. Visual Studio 2010 to 2013.
+
 Other Notes
 -----------
 
