@@ -29,7 +29,7 @@ You can also use the tools to fix the notorious [Invalid Multiple Files in Vsix]
 
 # Fix 'MyPackage'.
 $vsixPath = "c:/MyPackage.vsix"
-Vsix-FixInvalidMultipleFiles -VsixPath
+Vsix-FixInvalidMultipleFiles -VsixPath $vsixPath 
 
 ````
 
