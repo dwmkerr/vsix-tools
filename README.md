@@ -2,14 +2,14 @@ vsix-tools
 ==========
 
 VsixTools is a small set of useful powershell functions that can be helpful when
-maintaining Visual Studio Extension Package (*.vsix files).
+maintaining Visual Studio Extension Packages (*.vsix files).
 
 What can the tools do?
 ----------------------
 
 You can use the tools to set the version number of a vsix package:
 
-````ps
+````PowerShell
 
 # Load vsix tools
 . VsixTools.ps1
@@ -20,9 +20,9 @@ Vsix-SetVersion -VsixPath $vsixPath -Version "2.2.0.1"
 
 ````
 
-You can also use the tools to fix the notorious [Invalid Multiple Files in Vsix](http://stackoverflow.com/questions/9416467/invalid-multiple-zip-files-in-in-vsix)' issue in packages.
+You can also use the tools to fix the notorious [Invalid Multiple Files in Vsix](http://stackoverflow.com/questions/9416467/invalid-multiple-zip-files-in-in-vsix) issue in packages, letting you upload packages that contain mulitple project templates to the Visual Studio Gallery.
 
-````ps
+````PowerShell
 
 # Load vsix tools
 . VsixTools.ps1
@@ -42,9 +42,11 @@ version your vsix files as part of an automated process, these tools might help.
 How do I use the tools?
 -----------------------
 
-Put the VsixTools.ps1 file somewhere and [dot source](http://technet.microsoft.com/en-us/library/ee176949.aspx#ECAA)
+Put the ``VsixTools.ps1`` file somewhere and [dot source](http://technet.microsoft.com/en-us/library/ee176949.aspx#ECAA)
 it from your script. Then just use the ``Vsix-SetVersion`` or ``Vsix-FixInvalidMultipleFiles`` functions as you need
 them. If you need more functionality, raise an issue and I'll see what I can do.
+
+The tools have no other dependecies and are written in Powershell 2.
 
 Other Notes
 -----------
