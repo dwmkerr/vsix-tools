@@ -1,6 +1,8 @@
-[Reflection.Assembly]::LoadWithPartialName( "System.IO.Compression.FileSystem" )
+# VsizTools
+# Version 1.0
+# Copyright (c) Dave Kerr 2014
 
-# todo: validate vsix version (vs 2012 version is supported only)
+[Reflection.Assembly]::LoadWithPartialName( "System.IO.Compression.FileSystem" )
 
 # Unzips a zip file at $path to the folder $destination.
 function Unzip($path, $destination)
@@ -90,7 +92,7 @@ function GetManifestNamespaceManager($manifestXml) {
 
 # Sets the version of the vsix.
 # Version should be a string in the format "a.b" "a.b.c" or "a.b.c.d"
-function Vsix-Set-Version {
+function Vsix-SetVersion {
     param(
        [Parameter(Mandatory=$true)]
        [string]$VsixPath,
@@ -123,7 +125,7 @@ function Vsix-Set-Version {
     ZipWorkingFolderToVsix $workingFolder $vsixPath
 }
 
-function Vsix-Fix-Invalid-Multiple-Files {
+function Vsix-FixInvalidMultipleFiles {
     param(
        [Parameter(Mandatory=$true)]
        [string]$VsixPath
@@ -231,7 +233,7 @@ function Vsix-Fix-Invalid-Multiple-Files {
     ZipWorkingFolderToVsix $workingFolder $vsixPath
 }
 
-function Vsix-Get-Manifest-Version {
+function Vsix-GetManifestVersion {
     param(
        [Parameter(Mandatory=$true)]
        [string]$VsixPath
@@ -252,13 +254,3 @@ function Vsix-Get-Manifest-Version {
     Remove-Item $workingFolder -Force -Recurse
     return $manifestVersion
 }
-
-$vsixPath2010 = "D:\Repositories\GitHub\vsix-tools\Test Files\VS2010\SharpGL.vsix"
-$vsixPath2012 = "D:\Repositories\GitHub\vsix-tools\Test Files\VS2012\SharpGL.vsix"
-
-Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2012
-
-# Vsix-Get-Manifest-Version -VsixPath $vsixPath2010
-# Vsix-Get-Manifest-Version -VsixPath $vsixPath2012
-# Vsix-Set-Version -VsixPath $vsixPath2010 -Version "69.2"
-# Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2012
