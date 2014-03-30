@@ -36,10 +36,31 @@ function ZipWorkingFolderToVsix($workingFolder, $vsixPath) {
     Copy-Item $vsixPath -Destination ($vsixPath + ".backup")
     Remove-Item $vsixPath -Force
 
+    # Note we don't use the .NET method below - for some reason the package
+    # seems to not have the templates extracted.
     # Zip the working folder up and save it at the vsix path
-    [System.IO.Compression.ZipFile]::CreateFromDirectory($workingFolder, $vsixPath)
+    #[System.IO.Compression.ZipFile]::CreateFromDirectory($workingFolder, $vsixPath)
 
     # Remove the working folder.
+    #Remove-Item $workingFolder -Force -Recurse
+
+    $vsixZip = [System.IO.Path]::ChangeExtension($vsixPath, "zip")
+    if(!(test-path($vsixZip)))
+    {
+        set-content $vsixZip ("PK" + [char]5 + [char]6 + ("$([char]0)" * 18))
+        (dir $vsixZip).IsReadOnly = $false    
+    }
+    $shellApplication = new-object -com shell.application
+    $zipPackage = $shellApplication.NameSpace($vsixZip)
+    $items = Get-ChildItem $workingFolder
+    foreach($file in $items) 
+    { 
+        $zipPackage.CopyHere($file.FullName)
+        do {
+            Start-sleep 2
+        } until ( $zipPackage.Items() | select {$_.Name -eq $file.Name} )
+    }
+    Move-Item $vsixZip -Destination $vsixPath -Force
     Remove-Item $workingFolder -Force -Recurse
 }
 
@@ -89,8 +110,10 @@ function Vsix-Set-Version {
     $manifestVersion = GetManifestVersion($manifestXml)
     if($manifestVersion -eq 1) {
         $manifestXml.Vsix.Identifier.Version = $Version
-    } else {
+    } elseif($manifestVersion -eq 2) {
         $manifestXml.PackageManifest.Metadata.Identity.Version = $Version
+    } else {
+        throw "Unsupported manifest version"
     }
 
     # Save the manifest.
@@ -107,7 +130,8 @@ function Vsix-Fix-Invalid-Multiple-Files {
     )
 
     # Folder names need to be more than one letter and have different starting letters and numbers.
-    $folderNames = @("Alpha","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India","Juliet","Kilo","Lima","Mike","November","Oscar","Papa","Quebec","Romeo","Sierra","Tango","Uniform","Victor","Whiskey","Xray","Yankee","Zulu")
+    $folderNames = @("Alpha1","Bravo","Charlie","Delta","Echo","Foxtrot","Golf","Hotel","India","Juliet","Kilo","Lima","Mike","November","Oscar","Papa","Quebec","Romeo","Sierra","Tango","Uniform","Victor","Whiskey","Xray","Yankee","Zulu")
+    # $folderNames = @("F1","F2","F3","F4")
 
     # The gist is this. Find every zip file in Project Templates, e.g:
     # ProjectTemplates\CSharp\1033\PlumsProject.zip
@@ -128,8 +152,6 @@ function Vsix-Fix-Invalid-Multiple-Files {
     Get-ChildItem -Path (Join-Path $workingFolder '.\ProjectTemplates') -Filter *.zip -Recurse | ForEach-Object {
         $from = $_.FullName
         $newPath = $from.Replace('\ProjectTemplates\', '\' + $folderNames[$folderNameIndex] + '\')
-        Write-Host "From: $from"
-        Write-Host "To: $newPath"
         $projectTemplateFolders += $folderNames[$folderNameIndex]
         $folderNameIndex++
 
@@ -171,9 +193,34 @@ function Vsix-Fix-Invalid-Multiple-Files {
             $newnode = $projectTemplateNode.CloneNode($true)
             $newnode.InnerText = $projectTemplateFolder
             $contentNode.AppendChild($newnode)
+        }    
+    } elseif($manifestVersion -eq 2) {
+        
+        # Manifest v2:
+        # Remove all PackageManifest/Assets/Asset (project templat) nodes and replace with A/B/C etc, e.g.:
+        # <Assets>
+        #   <Asset Type="Microsoft.VisualStudio.ProjectTemplate" Path="ProjectTemplates" />
+        # </Assets>
+        # to 
+        # <Assets>
+        #   <Asset Type="Microsoft.VisualStudio.ProjectTemplate" Path="A" />
+        #   <Asset Type="Microsoft.VisualStudio.ProjectTemplate" Path="B" />
+        #   <Asset Type="Microsoft.VisualStudio.ProjectTemplate" Path="C" />
+        # </Assets>
+
+        # Get all the existing project template nodes.
+        $assetsNode = $manifestXml.PackageManifest.SelectSingleNode("ns:Assets", $ns)
+        $projectTemplateNodes = $manifestXml.PackageManifest.Assets.SelectNodes("ns:Asset[@Type='Microsoft.VisualStudio.ProjectTemplate']", $ns)
+        foreach($projectTemplateNode in $projectTemplateNodes) {
+            $manifestXml.PackageManifest.Assets.RemoveChild($projectTemplateNode)
+        }
+        foreach ($projectTemplateFolder in $projectTemplateFolders) {
+            $newnode = $projectTemplateNodes[0].CloneNode($true)
+            $newnode.Path = $projectTemplateFolder
+            $assetsNode.AppendChild($newnode)
         }
     } else {
-        $manifestXml.PackageManifest.Metadata.Identity.Version = $Version
+        throw "Unsupported manifest version"
     }
 
     # Save the manifest.
@@ -206,10 +253,10 @@ function Vsix-Get-Manifest-Version {
     return $manifestVersion
 }
 
-$vsixPath2010 = "C:\Repositories\GitHub\vsix-tools\Test Files\VS2010\SharpGL.vsix"
-$vsixPath2012 = "C:\Repositories\GitHub\vsix-tools\Test Files\VS2012\SharpGL.vsix"
+$vsixPath2010 = "D:\Repositories\GitHub\vsix-tools\Test Files\VS2010\SharpGL.vsix"
+$vsixPath2012 = "D:\Repositories\GitHub\vsix-tools\Test Files\VS2012\SharpGL.vsix"
 
-Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2010
+Vsix-Fix-Invalid-Multiple-Files -VsixPath $vsixPath2012
 
 # Vsix-Get-Manifest-Version -VsixPath $vsixPath2010
 # Vsix-Get-Manifest-Version -VsixPath $vsixPath2012
