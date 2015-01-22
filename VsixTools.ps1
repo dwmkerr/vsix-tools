@@ -1,4 +1,4 @@
-# VsizTools
+# VsixTools
 # Version 1.0
 # Copyright (c) Dave Kerr 2014
 
@@ -7,7 +7,7 @@
 # Unzips a zip file at $path to the folder $destination.
 function Unzip($path, $destination)
 {
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($path, $destination)
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($path, $destination) | Out-Null
 }
 
 # Given a path such as 'c:\test.vsix' this function 
@@ -160,7 +160,7 @@ function Vsix-FixInvalidMultipleFiles {
         # Copy the file from the old location to the new one, creating a directory chain as necessary.
         New-Item -ItemType File -Path $newPath -Force
         Copy-Item $from $newPath -Force
-    }
+    } | Out-Null
 
     # Delete the project templates folder.
     Remove-Item (Join-Path $workingFolder '.\ProjectTemplates') -Force -Recurse
@@ -189,12 +189,12 @@ function Vsix-FixInvalidMultipleFiles {
         # </Content>
         $contentNode = $manifestXml.Vsix.SelectSingleNode("ns:Content", $ns)
         $projectTemplateNode = $manifestXml.Vsix.Content.SelectSingleNode("ns:ProjectTemplate", $ns)
-        $manifestXml.Vsix.Content.RemoveChild($projectTemplateNode)
+        $manifestXml.Vsix.Content.RemoveChild($projectTemplateNode) | Out-Null
 
         foreach ($projectTemplateFolder in $projectTemplateFolders) {
             $newnode = $projectTemplateNode.CloneNode($true)
             $newnode.InnerText = $projectTemplateFolder
-            $contentNode.AppendChild($newnode)
+            $contentNode.AppendChild($newnode) | Out-Null
         }    
     } elseif($manifestVersion -eq 2) {
         
@@ -219,7 +219,7 @@ function Vsix-FixInvalidMultipleFiles {
         foreach ($projectTemplateFolder in $projectTemplateFolders) {
             $newnode = $projectTemplateNodes[0].CloneNode($true)
             $newnode.Path = $projectTemplateFolder
-            $assetsNode.AppendChild($newnode)
+            $assetsNode.AppendChild($newnode) | Out-Null
         }
     } else {
         throw "Unsupported manifest version"
