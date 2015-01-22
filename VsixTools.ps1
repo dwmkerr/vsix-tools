@@ -2,7 +2,7 @@
 # Version 1.0
 # Copyright (c) Dave Kerr 2014
 
-[Reflection.Assembly]::LoadWithPartialName( "System.IO.Compression.FileSystem" )
+[Reflection.Assembly]::LoadWithPartialName( "System.IO.Compression.FileSystem" ) | Out-Null
 
 # Unzips a zip file at $path to the folder $destination.
 function Unzip($path, $destination)
