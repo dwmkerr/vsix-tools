@@ -1,6 +1,8 @@
 vsix-tools
 ==========
 
+[![GuardRails badge](https://badges.production.guardrails.io/dwmkerr/vsix-tools.svg)](https://www.guardrails.io)
+
 VsixTools is a small set of useful powershell functions that can be helpful when
 maintaining Visual Studio Extension Packages (*.vsix files).
 
